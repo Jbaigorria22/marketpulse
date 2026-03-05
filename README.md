@@ -116,7 +116,7 @@ Built with Streamlit + Plotly. Bloomberg-style dark theme, fully interactive.
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/YOUR_USERNAME/marketpulse.git
+git clone https://github.com/Jbaigorria22/marketpulse.git
 cd marketpulse
 ```
 
@@ -133,7 +133,7 @@ source venv/bin/activate
 
 ### 3. Install dependencies
 ```bash
-pip install yfinance pandas scikit-learn plotly streamlit joblib python-dotenv
+pip install -r requirements.txt
 ```
 
 ### 4. Run the pipeline
