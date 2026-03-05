@@ -22,6 +22,9 @@ Built as a portfolio project to demonstrate end-to-end ML pipeline development â
 > Dashboard running locally on `http://localhost:8501`  
 > Tickers analyzed: **AAPL** (Apple) Â· **MSFT** (Microsoft)
 
+## Dashboard Preview
+
+![MarketPulse Dashboard](assets/dashboard.png)
 ---
 
 ## Features
