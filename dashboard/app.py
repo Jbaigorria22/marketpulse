@@ -478,13 +478,36 @@ def load_data(ticker):
     """Carga los datos con caché de 1 hora"""
     try:
         feat = load_features_cloud(ticker)
-        raw = pd.read_csv(f"data/raw/{ticker}.csv",
-                         header=[0, 1], index_col=0, parse_dates=True)
-        raw.columns = raw.columns.get_level_values(0)
+        raw = load_raw_cloud(ticker)
         return feat, raw
     except Exception as e:
         st.error(f"Error loading data for {ticker}: {str(e)}")
         return None, None
+    
+@st.cache_data(ttl=3600)
+def load_raw_cloud(ticker):
+    if is_cloud():
+        s3 = get_s3_client()
+        obj = s3.get_object(
+            Bucket=BUCKET,
+            Key=f"data/raw/{ticker}.csv"
+        )
+        raw = pd.read_csv(
+            BytesIO(obj["Body"].read()),
+            header=[0, 1],
+            index_col=0,
+            parse_dates=True
+        )
+    else:
+        raw = pd.read_csv(
+            f"data/raw/{ticker}.csv",
+            header=[0, 1],
+            index_col=0,
+            parse_dates=True
+        )
+
+    raw.columns = raw.columns.get_level_values(0)
+    return raw
 
 @st.cache_resource
 def load_model(ticker):
