@@ -21,7 +21,7 @@ Built as a portfolio project to demonstrate end-to-end ML pipeline development â
 
 ## Live Demo
 
-> Dashboard running locally on `http://localhost:8501`  
+> Dashboard running locally on `https://marketpuls3.streamlit.app`  
 > Tickers analyzed: **AAPL** (Apple) Â· **MSFT** (Microsoft)
 
 ## Dashboard Preview
