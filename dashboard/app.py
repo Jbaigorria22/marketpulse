@@ -1,4 +1,8 @@
 # dashboard/app.py
+import sys
+import os
+
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
@@ -7,9 +11,57 @@ import joblib
 import numpy as np
 import sys
 import os
-
-sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
+import boto3
+from io import BytesIO
 from config import TICKERS, DATA_PROCESSED_PATH, MODEL_PATH, FORECAST_DAYS
+
+# ── S3 loader ────────────────────────────────────────────────────────────────
+def is_cloud():
+    """Detecta si estamos corriendo en Streamlit Cloud"""
+    return os.getenv("MP_ACCESS_KEY_ID") is not None
+
+def get_s3_client():
+    return boto3.client(
+        "s3",
+        aws_access_key_id=os.getenv("MP_ACCESS_KEY_ID"),
+        aws_secret_access_key=os.getenv("MP_SECRET_ACCESS_KEY"),
+        region_name=os.getenv("MP_REGION", "sa-east-1")
+    )
+
+BUCKET = os.getenv("MP_S3_BUCKET", "marketpulse-data-jbaigorria")
+
+@st.cache_data(ttl=3600)
+def load_features_cloud(ticker):
+    if is_cloud():
+        s3 = get_s3_client()
+        obj = s3.get_object(
+            Bucket=BUCKET,
+            Key=f"data/processed/{ticker}_features.csv"
+        )
+        return pd.read_csv(BytesIO(obj["Body"].read()), index_col=0, parse_dates=True)
+    else:
+        return pd.read_csv(
+            f"{DATA_PROCESSED_PATH}{ticker}_features.csv",
+            index_col=0, parse_dates=True
+        )
+
+@st.cache_resource
+def load_model_cloud(ticker):
+    if is_cloud():
+        s3 = get_s3_client()
+        obj = s3.get_object(
+            Bucket=BUCKET,
+            Key=f"models/{ticker}_model.pkl"
+        )
+        result = joblib.load(BytesIO(obj["Body"].read()))
+        if isinstance(result, tuple):
+            return result[0]
+        return result
+    else:
+        result = joblib.load(f"{MODEL_PATH}{ticker}_model.pkl")
+        if isinstance(result, tuple):
+            return result[0]
+        return result
 
 st.set_page_config(
     page_title="MarketPulse · Fintech Analytics Platform",
@@ -425,8 +477,7 @@ div[data-baseweb="checkbox"]:hover {
 def load_data(ticker):
     """Carga los datos con caché de 1 hora"""
     try:
-        feat = pd.read_csv(f"{DATA_PROCESSED_PATH}{ticker}_features.csv",
-                          index_col=0, parse_dates=True)
+        feat = load_features_cloud(ticker)
         raw = pd.read_csv(f"data/raw/{ticker}.csv",
                          header=[0, 1], index_col=0, parse_dates=True)
         raw.columns = raw.columns.get_level_values(0)
@@ -439,7 +490,7 @@ def load_data(ticker):
 def load_model(ticker):
     """Carga el modelo con caché"""
     try:
-        return joblib.load(f"{MODEL_PATH}{ticker}_model.pkl")
+        return load_model_cloud(ticker)
     except Exception as e:
         st.error(f"Error loading model for {ticker}: {str(e)}")
         return None
